@@ -1,8 +1,11 @@
 import stim
+import time
 import numpy as np
 import math
 import networkx as nx
 import matplotlib.pyplot as plt
+from qiskit import QuantumCircuit, execute, Aer
+from qiskit.quantum_info import Statevector
 
 def build3QubitCodeCircuit(p_error):
     circuit = stim.Circuit()
@@ -232,6 +235,83 @@ def run_5bit_experiment(p_error, trials=1000):
         if i % 1000 == 0:
             print(f"Completed {i}/{trials} trials (p={p_error})")
     return successes / trials
+
+
+def build_5qubit_qiskit_circuit(p_error):
+    qc = QuantumCircuit(9, 5)  # 5 data + 4 ancilla qubits
+    
+    # Initialize logical |0⟩
+    qc.h(0)
+    for i in range(1,5):
+        qc.cx(0, i)
+    
+    # Apply depolarizing noise (simplified)
+    for q in range(5):
+        if np.random.random() < p_error:
+            qc.x(q)
+        if np.random.random() < p_error:
+            qc.z(q)
+    
+    # Stabilizer measurements
+    # ... (implement stabilizers using Qiskit gates) ...
+    
+    return qc
+
+def run_qiskit_simulation(p_error, trials):
+    backend = Aer.get_backend('statevector_simulator')
+    start = time.time()
+    successes = 0
+    
+    for _ in range(trials):
+        qc = build_5qubit_qiskit_circuit(p_error)
+        result = execute(qc, backend).result()
+        state = Statevector(result.get_statevector())
+        
+        # Measure logical qubit
+        if state.probabilities([0])[0] > 0.99:  # |0⟩ state
+            successes += 1
+    
+    runtime = time.time() - start
+    return successes/trials, runtime
+
+def benchmark():
+    p_values = np.linspace(0.01, 0.2, 5)
+    trials = 1000
+    
+    print(f"{'p_error':<10}{'Stim LR':<15}{'Stim Time':<15}{'Qiskit LR':<15}{'Qiskit Time':<15}")
+    print("-"*60)
+    
+    for p in p_values:
+        # Run Stim
+        stim_lr, stim_time = run_5bit_experiment(p, trials)
+        
+        # Run Qiskit (fewer trials due to slower speed)
+        qiskit_lr, qiskit_time = run_qiskit_simulation(p, min(trials, 100))
+        
+        print(f"{p:<10.3f}{stim_lr:<15.4f}{stim_time:<15.2f}{qiskit_lr:<15.4f}{qiskit_time:<15.2f}")
+
+    # Plot results
+    plt.figure(figsize=(12,5))
+    
+    # Plot error rates
+    plt.subplot(121)
+    plt.plot(p_values, [run_5bit_experiment(p, 1000)[0] for p in p_values], 'o-', label='Stim')
+    plt.plot(p_values, [run_qiskit_simulation(p, 100)[0] for p in p_values], 's--', label='Qiskit')
+    plt.xlabel("Physical Error Rate")
+    plt.ylabel("Logical Success Rate")
+    plt.legend()
+    
+    # Plot runtimes
+    plt.subplot(122)
+    plt.bar(['Stim', 'Qiskit'], 
+            [run_5bit_experiment(0.1, 1000)[1],
+            [run_qiskit_simulation(0.1, 100)[1]]])
+    plt.ylabel("Runtime (s)")
+    plt.title("Performance Comparison")
+    
+    plt.tight_layout()
+    plt.show()
+
 
 if __name__ == "__main__":
     #p_values = [0.01, 0.05, 0.1, 0.15, 0.2]
