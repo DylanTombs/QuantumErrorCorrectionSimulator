@@ -15,7 +15,7 @@ Additionally a  comparative study of error correction performance between Stim a
 
 ###        
 <p align="center">
-  <img src="ResultAnalysis/5QubitBitFlipCode.png" width="45%" />
+  <img src="ResultAnalysis/5QubitBitFlipCodeZoomed.png" width="45%" />
   <img src="ResultAnalysis/3QubitBitFlipCode.png" width="45%" />
 </p>
 
