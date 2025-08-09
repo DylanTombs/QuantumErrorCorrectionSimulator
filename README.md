@@ -13,13 +13,15 @@ Additionally a  comparative study of error correction performance between Stim a
 
 ## Analysis
 
-5 Qubit Analysis
-![Error5Benchmarkresults](./ResultAnalysis/5QubitBitFlipCode.png)
+###        
+<p align="center">
+  <img src="ResultAnalysis/5QubitBitFlipCode.png" width="45%" />
+  <img src="ResultAnalysis/3QubitBitFlipCode.png" width="45%" />
+</p>
 
-3 Qubit Analysis
-![Error3Benchmarkresults](./ResultAnalysis/3QubitBitFlipCode.png)
+### Time Performance
 
-Time Performance
-
-![TimeBenchmarkresults](./ResultAnalysis/qec_benchmark_runtime.png)
+<p align="center">
+  <img src="ResultAnalysis/qec_benchmark_runtime.png" width="80%" />
+</p>
 
