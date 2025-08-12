@@ -28,8 +28,8 @@ def decode_x_syndrome(syndrome, p_error):
             G.add_edge(node, boundary, weight=-math.log(p_error))
     
     # Possible error links
-    stabilizer_edges = [("X1", "X3", -math.log(p_error**2))]
-    for u, v, w in stabilizer_edges:
+    stabiliser_edges = [("X1", "X3", -math.log(p_error**2))]
+    for u, v, w in stabiliser_edges:
         if u in G and v in G:
             G.add_edge(u, v, weight=w)
     

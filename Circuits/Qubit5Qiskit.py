@@ -5,7 +5,7 @@ from Circuits.decoder import decode_5qubit_syndrome
 
 
 def build_5qubit_qiskit_circuit(p_error):
-    """Constructs the 5-qubit code circuit with noise and stabilizer measurements."""
+    """Constructs the 5-qubit code circuit with noise and stabiliser measurements."""
     qc = QuantumCircuit(9, 4)  # 5 data + 4 ancilla
     
     # Encode logical |0>
@@ -23,7 +23,7 @@ def build_5qubit_qiskit_circuit(p_error):
         if random.random() < p_error:
             qc.z(q)
     
-    # Measure stabilizers
+    # Measure stabilisers
     # XZZXI  (ancilla 5 -> bit 0)
     qc.h(5)
     qc.cx(0, 5)
@@ -61,10 +61,6 @@ def build_5qubit_qiskit_circuit(p_error):
     qc.measure(8, 3)
     
     return qc
-
-# ---------------------------
-# DECODER WRAPPER
-# ---------------------------
 
 def decode_qiskit_syndrome(syndrome, p_error):
     """Returns separate X/Z correction lists from MWPM decoding."""

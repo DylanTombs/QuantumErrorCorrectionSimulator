@@ -1,9 +1,8 @@
 import random
 from qiskit import QuantumCircuit
-from  qiskit_aer.noise import NoiseModel, depolarizing_error
 
 def build_3qubit_qiskit_circuit(p_error):
-    """Constructs the 3-qubit repetition code circuit with noise and stabilizer measurements."""
+    """Constructs the 3-qubit repetition code circuit with noise and stabiliser measurements."""
     qc = QuantumCircuit(5, 2)  # 3 data + 2 ancilla qubits, 2 classical bits for syndrome
     
     # Encode logical |0> using repetition code
@@ -51,49 +50,3 @@ def decode_3qubit_syndrome(syndrome):
         corrections[2] = 1  # Correct qubit 2
     
     return corrections
-
-def build_noise_model(p_error):
-    noise = NoiseModel()
-    err = depolarizing_error(p_error, 1)
-    for q in range(3):
-        noise.add_all_qubit_quantum_error(err, ['id', 'x', 'y', 'z', 'cx', 'cz', 'h'])
-    return noise
-
-# Alternative implementation using majority vote for logical readout
-def run_qiskit_3qubit_majority(p_error: float, trials: int, seed: int):
-    """3-qubit code with majority vote readout (no syndrome correction)."""
-    from qiskit_aer import AerSimulator
-    import numpy as np
-    import time
-    
-    np.random.seed(seed)
-    random.seed(seed)
-    simulator = AerSimulator()
-    successes = 0
-    
-    start = time.perf_counter()
-    for _ in range(trials):
-        qc = QuantumCircuit(3, 3)
-        
-        # Encode logical |0>
-        qc.cx(0, 1)
-        qc.cx(0, 2)
-        
-        # Apply noise
-        for q in range(3):
-            if random.random() < p_error:
-                qc.x(q)
-        
-        # Measure all qubits
-        qc.measure_all()
-        
-        # Get results and apply majority vote
-        result = simulator.run(qc, shots=1).result()
-        measurements = [int(b) for b in list(result.get_counts().keys())[0][::-1]]
-        
-        # Majority vote
-        logical_result = 1 if sum(measurements) > 1.5 else 0
-        successes += (logical_result == 0)
-    
-    runtime = time.perf_counter() - start
-    return {"success_rate": successes / trials, "runtime_s": runtime}
