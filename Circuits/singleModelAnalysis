@@ -1,0 +1,107 @@
+import argparse
+import json
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+from datetime import datetime
+from scipy.stats import binom
+
+# === Matplotlib Style Config ===
+plt.style.use("seaborn-v0_8-whitegrid")
+plt.rcParams.update({
+    "font.family": "serif",
+    "font.size": 12,
+    "figure.figsize": (8, 5),
+    "axes.labelsize": 14,
+    "axes.titlesize": 14,
+    "legend.fontsize": 12,
+    "xtick.labelsize": 12,
+    "ytick.labelsize": 12
+})
+
+
+def load_data(path: Path) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    required_cols = {"p", "success_rate", "runtime_s", "trials", "seed"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns in CSV: {missing}")
+    return df
+
+
+def binomial_confidence_intervals(success_rate, trials, alpha=0.05):
+    """Compute exact binomial confidence intervals (Clopper Pearson)."""
+    successes = np.round(success_rate * trials).astype(int)
+    lower = binom.ppf(alpha/2, trials, successes/trials) / trials
+    upper = binom.ppf(1 - alpha/2, trials, successes/trials) / trials
+    return lower, upper
+
+
+def plot_success_vs_physical(df: pd.DataFrame, output_dir: Path):
+    p_vals = df["p"].to_numpy()
+    success = df["success_rate"].to_numpy()
+    trials = df["trials"].to_numpy()
+
+    ci_low, ci_high = binomial_confidence_intervals(success, trials)
+    err_low = success - ci_low
+    err_high = ci_high - success
+
+    fig, ax = plt.subplots()
+    ax.errorbar(
+        p_vals, success, yerr=[err_low, err_high],
+        fmt="o-", capsize=4, label="ML Decoder"
+    )
+
+    ax.set_xlabel("Physical error rate $p$")
+    ax.set_ylabel("Logical success probability")
+    ax.set_title("5-Qubit Flip Code Performance")
+    ax.legend()
+
+    meta_note = f"Generated: {datetime.utcnow().isoformat(timespec='seconds')} UTC"
+    ax.annotate(meta_note, xy=(1.0, -0.15), xycoords="axes fraction",
+                ha="right", va="center", fontsize=8, color="gray")
+
+    output_path = output_dir / "success_vs_physical.pdf"
+    fig.tight_layout()
+    fig.savefig(output_path)
+    print(f"[INFO] Saved plot to {output_path}")
+
+
+def plot_runtime(df: pd.DataFrame, output_dir: Path):
+    fig, ax = plt.subplots()
+    ax.plot(df["p"], df["runtime_s"], "o-", label="Runtime per p")
+    ax.set_xlabel("Physical error rate $p$")
+    ax.set_ylabel("Total runtime (s)")
+    ax.set_title("Simulation Runtime vs Error Rate")
+    ax.legend()
+
+    output_path = output_dir / "runtime_vs_p.pdf"
+    fig.tight_layout()
+    fig.savefig(output_path)
+    print(f"[INFO] Saved plot to {output_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="QEC Benchmark Analysis")
+    parser.add_argument("csv_path", type=Path, help="Path to benchmark_results.csv")
+    parser.add_argument("--output-dir", type=Path, default=Path("plots"), help="Where to save plots")
+    parser.add_argument("--config", type=Path, help="Optional JSON config to save with plots")
+    args = parser.parse_args()
+
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    df = load_data(args.csv_path)
+
+    # Save metadata/config if provided
+    if args.config and args.config.exists():
+        config_data = json.loads(args.config.read_text())
+        (args.output_dir / "config_used.json").write_text(json.dumps(config_data, indent=2))
+        print(f"[INFO] Saved config to {args.output_dir/'config_used.json'}")
+
+    # Plot and save
+    plot_success_vs_physical(df, args.output_dir)
+    plot_runtime(df, args.output_dir)
+
+
+if __name__ == "__main__":
+    main()
